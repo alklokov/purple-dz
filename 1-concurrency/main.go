@@ -16,34 +16,44 @@ const (
 	limit  = 10
 )
 
+var (
+	ch1 chan int
+	ch2 chan int
+)
+
 func main() {
-	nums := make([]int, 0, limit)
-	for num := range proceed(generateNumbers()) {
-		nums = append(nums, num)
-	}
-	for _, num := range nums {
+	ch1 = make(chan int, limit)
+	ch2 = make(chan int, limit)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		generateNumbers(ch1)
+	}()
+	go func() {
+		defer wg.Done()
+		proceed(ch1, ch2)
+	}()
+	wg.Wait()
+	for num := range ch2 {
 		fmt.Print(num, " ")
 	}
 }
 
-func generateNumbers() <-chan int {
+func generateNumbers(ch chan<- int) {
 	nums := make([]int, limit)
 	for i := 0; i < limit; i++ {
 		nums[i] = rand.Intn(maxNum + 1)
 	}
-	ch := make(chan int, limit)
 	for _, num := range nums {
 		ch <- num
 	}
 	close(ch)
-	return ch
 }
 
-func proceed(ch <-chan int) <-chan int {
-	ch2 := make(chan int, limit)
+func proceed(ch <-chan int, resCh chan<- int) {
 	for num := range ch {
-		ch2 <- num * num
+		resCh <- num * num
 	}
-	close(ch2)
-	return ch2
+	close(resCh)
 }
