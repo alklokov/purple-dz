@@ -2,6 +2,8 @@ package mailer
 
 import (
 	"3-validation-api/configs"
+	"3-validation-api/pkg/request"
+	"3-validation-api/pkg/result"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -24,29 +26,50 @@ func MakeMailHandler(router *http.ServeMux, config *configs.Config) {
 }
 
 func (m *MailHandler) sendHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		err := m.SendEmail(makeTestEmail())
-		if err != nil {
-			w.WriteHeader(http.StatusExpectationFailed)
-			w.Write([]byte(err.Error()))
-		} else {
-			w.WriteHeader(http.StatusOK)
+	return func(w http.ResponseWriter, r *http.Request) {
+		mail, err := request.Decode[MailRequest](r.Body)
+		if err == nil {
+			err = request.IsValid(mail)
 		}
+		if err != nil {
+			result.Json(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		conf := makeConfirmation(mail.Email)
+		err = saveConfirmation(*conf)
+		if err != nil {
+			result.Json(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		err = m.SendEmail(m.makeConfirmEmail(*conf))
+		if err != nil {
+			result.Json(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
 func (m *MailHandler) verifyHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte("verified"))
+	return func(w http.ResponseWriter, r *http.Request) {
+		hash := r.PathValue("hash")
+		fmt.Println("HASH = ", hash)
+		if verifyHash(hash) {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 	}
 }
 
-func makeTestEmail() *email.Email {
+func (m *MailHandler) makeConfirmEmail(conf MailConfirmation) *email.Email {
+	url := fmt.Sprintf("<a href=\"http://localhost:8081/verify/%s\">Confirm</a>", conf.Hash)
 	return &email.Email{
-		From:    "Sender <sender@mail.ru>",
-		To:      []string{"klokov@ravelinspb.ru"},
-		Subject: "Test letter",
-		Text:    []byte("This is a test letter"),
+		From:    m.Sender,
+		To:      []string{conf.Email},
+		Subject: "Confirm email",
+		HTML:    []byte(url),
 	}
 }
 

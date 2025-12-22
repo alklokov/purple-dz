@@ -17,6 +17,7 @@ type SMTPConfig struct {
 	Port     int
 	Username string
 	Password string
+	Sender   string
 }
 
 func LoadConfig() *Config {
@@ -30,6 +31,7 @@ func LoadConfig() *Config {
 					Port:     port,
 					Username: os.Getenv("username"),
 					Password: os.Getenv("password"),
+					Sender:   os.Getenv("sender"),
 				},
 			}
 		}
@@ -45,6 +47,7 @@ func makeDefaultConfig() *Config {
 			Port:     25,
 			Username: "user",
 			Password: "pwd",
+			Sender:   "Sender <sender@mail.ru>",
 		},
 	}
 }
