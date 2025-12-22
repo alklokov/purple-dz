@@ -64,7 +64,7 @@ func (m *MailHandler) verifyHandler() http.HandlerFunc {
 }
 
 func (m *MailHandler) makeConfirmEmail(conf MailConfirmation) *email.Email {
-	url := fmt.Sprintf("<a href=\"http://localhost:8081/verify/%s\">Confirm</a>", conf.Hash)
+	url := fmt.Sprintf("<a href=\"http://localhost:8081/verify/{%s}\">Confirm</a>", conf.Hash)
 	return &email.Email{
 		From:    m.Sender,
 		To:      []string{conf.Email},

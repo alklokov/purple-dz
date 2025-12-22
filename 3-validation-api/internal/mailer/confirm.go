@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 const userFile string = "user.txt"
@@ -12,7 +13,7 @@ const userFile string = "user.txt"
 func makeConfirmation(mail string) *MailConfirmation {
 	return &MailConfirmation{
 		Email: mail,
-		Hash:  fmt.Sprintf("{%X}", sha256.Sum256([]byte(mail))),
+		Hash:  fmt.Sprintf("%x", sha256.Sum256([]byte(mail))),
 	}
 }
 
@@ -22,7 +23,10 @@ func saveConfirmation(conf MailConfirmation) error {
 		return err
 	}
 	defer file.Close()
-	bytes, _ := json.Marshal(conf)
+	bytes, err := json.Marshal(conf)
+	if err != nil {
+		return err
+	}
 	file.Write(bytes)
 	return nil
 }
@@ -39,5 +43,5 @@ func verifyHash(hash string) bool {
 	if err != nil {
 		return false
 	}
-	return conf.Hash == hash
+	return conf.Hash == strings.Trim(hash, "{}")
 }
