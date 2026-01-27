@@ -4,6 +4,7 @@ import (
 	"4-order-api/configs"
 	"4-order-api/internal/product"
 	"4-order-api/pkg/db"
+	"4-order-api/pkg/middleware"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +23,7 @@ func main() {
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: router,
+		Handler: middleware.Logging(router),
 	}
 	fmt.Printf("Server started on port %d\n", port)
 	err := server.ListenAndServe()
